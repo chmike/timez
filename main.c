@@ -6,6 +6,9 @@
 
 int main(void)
 {
+    printf("0x%016llX \n", 1LL << 53);
+
+
     timez_t t1 = timez_now();
     printf("0x%016llX \n", t1);
 
