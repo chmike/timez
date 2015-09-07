@@ -1,59 +1,61 @@
 #include "timez.h"
 
-#define TOFFBITS 12
-#define TOFFMID 2048
-#define TOFFMASK 0xFFF
-#define TIMEMID (1LL<<51)
+#define TIMEZ_OBITS TIMEZ_OFFSET_BITS
+#define TIMEZ_OMID (1 << (TIMEZ_OBITS - 1))
+#define TIMEZ_OMASK ((1LL << TIMEZ_OBITS) - 1)
+#define TIMEZ_CMID (1LL << (63 - TIMEZ_OBITS))
 
-timez_t timez_now() {
-    struct timespec tp;
-    tzset();
-    // This is incorret for countries with a DST != 1 hour
-    long to = -timezone / 60 + (daylight ? 60 : 0);
-    if ((timezone % 60) == 0 && !clock_gettime(CLOCK_REALTIME, &tp) &&
-            to > -TOFFMID && to < TOFFMID) {
-        return timez_new(&tp, (short)to);
-    }
-    return TIMEZ_INVALID;
+
+long long timez_tp2count(const struct timespec *tp) {
+    return tp ? (tp->tv_sec * 1000000LL) + (tp->tv_nsec / 1000) : 0;
 }
 
 
-timez_t timez_new(struct timespec *tp, const short to) {
-    if (tp && to > -TOFFMID && to < TOFFMID) {
-        long long t = tp->tv_sec * 1000000LL + tp->tv_nsec / 1000;
-        if (t >= 0 && (t -= TIMEMID) < TIMEMID) {
-            return (t << TOFFBITS) | (to + TOFFMID);
-        }
-    }
-    return TIMEZ_INVALID;
-}
-
-
-bool timez_valid(const timez_t t) {
-    return (t & TOFFMASK) != 0;
-}
-
-
-bool timez_get(struct timespec *tp, short *to, const timez_t t) {
-    short tmp_to = t & TOFFMASK;
-    long long tmp_t = t >> TOFFBITS;
-    if (tmp_to != 0 && tmp_t >= -TIMEMID && tmp_t < TIMEMID) {
-        if (to) {
-            *to = tmp_to - TOFFMID;
-        }
-        if (tp) {
-            tmp_t += TIMEMID;
-            tp->tv_sec = (long)(tmp_t / 1000000);
-            tp->tv_nsec = (long)(tmp_t % 1000000) * 1000;
-        }
+bool timez_count2tp(struct timespec *tp, const long long count) {
+    const long long time_t_max = (1LL << 31) * 1000000;
+    if (tp && count >= -time_t_max && count < time_t_max) {
+        tp->tv_sec = (long)(count / 1000000);
+        long long tmp = (count < 0) ? -count : count;
+        tp->tv_nsec = (long)(tmp % 1000000) * 1000;
         return true;
     }
     return false;
 }
 
 
-long long timez_diff(timez_t t1, timez_t t2) {
-    return ((t1 >> TOFFBITS) + TIMEMID) - ((t2 >> TOFFBITS) + TIMEMID);
+timez_t timez_now() {
+    struct timespec tp;
+    tzset();
+    // This is incorret for countries with a DST different of one hour
+    int to = (short)(-timezone / 60 + (daylight ? 60 : 0));
+    if ((timezone % 60) == 0 && clock_gettime(CLOCK_REALTIME, &tp) == 0) {
+        return timez_new(timez_tp2count(&tp), to);
+    }
+    return TIMEZ_INVALID;
 }
+
+
+timez_t timez_new(long long count, const int offset) {
+    return (count >= -TIMEZ_CMID && count < TIMEZ_CMID &&
+            offset > -TIMEZ_OMID && offset < TIMEZ_OMID) ?
+                (count << TIMEZ_OBITS) | (offset + TIMEZ_OMID) : TIMEZ_INVALID;
+}
+
+
+bool timez_valid(const timez_t t) {
+    return (t & TIMEZ_OMASK) != 0;
+}
+
+
+long long timez_count(const timez_t t) {
+    return (t & TIMEZ_OMASK) ? t >> TIMEZ_OBITS : TIMEZ_INVALID_COUNT;
+}
+
+
+int timez_offset(const timez_t t) {
+    int offset = (int)(t & TIMEZ_OMASK);
+    return offset ? offset - TIMEZ_OMID : TIMEZ_INVALID_OFFSET;
+}
+
 
 

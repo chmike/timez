@@ -8,8 +8,7 @@ integer. It contains
 
 The epoch is the 1 January 1970 00:00:00 UTC. The *Timez* time stamp is intended
 to be transmitted accross internet between locations with a different time offset 
-relative to the UTC time. No time value before the *epoch* can be represented by
-*Timez*.
+relative to the UTC time. 
 
 Note: the *z* of *Timez* has no relation to the military *Zulu* term used to
 identify the UTC time.
@@ -18,25 +17,24 @@ identify the UTC time.
 ## Encoding
 
 <pre>
-   64                     12        0   bits
+   64                     11        0   bits
    |__________  __________|________|
    |__________//__________|________|
    |nbr µs since UTC epoch| offset |
 </pre>
 
-+ The 52 most significant bits is a signed integer in two's complement encoding 
-   the number of microseconds elapsed since the reference time called *epoch* 
-   subtracted by 2^52 ;
++ The 53 most significant bits is a signed integer in two's complement encoding 
+   the number of microseconds elapsed since the reference time called *epoch* ;
 + The epoch is the `1 January 1970 00:00:00 UTC` ;
-+ The 12 less significant bits is an unsigned integer encoding the local time
-   offset (including day time saving) in minutes plus 2048 ;
-+ The value is invalid when the 12 less significant bits are all 0 ;
++ The 11 less significant bits is an unsigned integer encoding the local time
+   offset (including day time saving) in minutes plus 1024 ;
++ The *Timez* value is invalid when the 11 less significant bits are all 0 ;
 
 ## Properties
 
-* the covered time range is 1970 to 1970 + 142 years ;
+* the covered time range is 1970 +/- 142 years ;
 * the time resolution is in microseconds ;
-* the covered time offset range is +/- 34 hours ;
+* the covered time offset range is +/- 17 hours ;
 * the time offset resolution is in minutes ;
 * the time offset is the sum of the time zone offset and day light saving time ; 
 * comparing the 64 bit signed integer is equivalent to UTC time comparison ;
@@ -76,9 +74,12 @@ seconds. It also doesn't provide a time zone information.
 
 ## Code
 
-The code is embryonic and simply a proof of concept. Use the following command to build the simple test program.
+* The API and implementation is work in progress. It may still change radically.
+* The code is embryonic and simply a proof of concept. It requires 64bit support. Use the following command to build the simple test program.
 
     gcc -lrt main.c timez.c
+    
+* The current implementation uses `time_t` values obtained in the `stuct timespec` with the `clock_gettime()` function. It is thus actually exposed to the 2038 problem. This will be fixed in a future implementation. Functions to decode the *Timez* value into a `struct tm` equivalent and do the reverse still needs to be implemented. They will introduce a dependency to the IANA timezone database.
 
 ## Reference
 
@@ -88,3 +89,4 @@ The code is embryonic and simply a proof of concept. Use the following command t
 + [RFC 3339](https://tools.ietf.org/html/rfc3339)
 + [Year 2038 problem](https://en.wikipedia.org/wiki/Year_2038_problem)
 + [IANA time zone](http://www.iana.org/time-zones)
++ [Libc time converting function problems](https://rachelbythebay.com/w/2013/03/17/time/)
