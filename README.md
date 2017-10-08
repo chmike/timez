@@ -1,9 +1,12 @@
 # Timez
 
+**Note:** this timez encoding is outdated. See [timez-go](https://github.com/chmike/timez-go)
+for the latest encoding. 
+
 A *Timez* is a binary representation for time stamps encoded in a 64 bit signed 
 integer. It contains 
 
-1. the number of micro seconds elapsed since a reference time called the *epoch*, 
+1. the number of microseconds elapsed since a reference time called the *epoch*, 
 2. the time offset to the UTC time in the location where the stamp was generated.
 
 The epoch is the 1 January 1970 00:00:00 UTC. The *Timez* time stamp is intended
@@ -52,7 +55,7 @@ identify the UTC time.
 
 ISO 8601 defines an international standad ASCII representation of date and time 
 including the time offset information. It is designed to allow sorting by time 
-with a  lexical ordering. Unfortunately, the encoded time is the local time. 
+with a lexical ordering. Unfortunately, the encoded time is the local time. 
 This representation is thus not appropriate when comparing times with different 
 offsets. A prior conversion in UTC time is required. 
 
